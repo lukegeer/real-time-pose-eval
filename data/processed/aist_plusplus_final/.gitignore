@@ -1,0 +1,6 @@
+motions/
+splits/
+keypoints2d/
+keypoints3d/
+
+!.gitignore
