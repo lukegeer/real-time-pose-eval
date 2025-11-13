@@ -5,3 +5,5 @@ jupyter
 notebook
 pandas
 mediapipe
+torch
+tqdm
