@@ -1,0 +1,24 @@
+name: realtime
+channels:
+  - conda-forge
+  - defaults
+
+dependencies:
+  - python=3.11
+  - pip
+  - numpy
+  - matplotlib
+  - pandas
+  - jupyter
+  - notebook
+
+  - pip:
+      - opencv-python
+      - mediapipe==0.10.21
+      - numpy
+      - matplotlib
+      - jupyter
+      - notebook
+      - pandas
+      - torch
+      - tqdm
