@@ -1,60 +1,56 @@
 import cv2
 import numpy as np
 import pickle
-import os
-
-from src.parser.live_video_parser import VideoParser
-from src.util.visualizer import visualize_pose
-from src.model.media_pipe_pose import MediaPipePose
-from src.util.visualizer import visualize_preds_vs_ground_truths
 
 
-# load data keypoints
-def load_keypoints(keypoint_path):
-    with open(keypoint_path, "rb") as f:
+# AIST++ Official Parameters
+AIST_W = 1920
+AIST_H = 1080
+
+
+# Load AIST 2D Keypoints (already in correct pixel coords)
+def load_keypoints(path, view=0):
+    with open(path, "rb") as f:
         data = pickle.load(f)
 
-    # AIST files typically have:
-    # data["keypoints2d"]: shape (F, K, 3) or (F, K, 2)
-    if "keypoints2d" in data:
-        kpts = data["keypoints2d"][..., :2]  # drop confidence if exists
-    elif "positions_2d" in data:
-        kpts = data["positions_2d"][..., :2]
-    else:
-        raise ValueError("Keypoint structure unknown. Keys:", data.keys())
-
-    return kpts
+    kpts = data["keypoints2d"]           # (9, F, 17, 3)
+    kpts = kpts[view]                    # (F, 17, 3)
+    return kpts[..., :2].astype(np.float32)   # drop confidence
 
 
-# run optical flow algorithm on keypoints
-def lucas_kanade_on_keypoints(video_path, keypoint_path):
-    # load ground truth keypoints
-    gt_keypoints = load_keypoints(keypoint_path)
+# Lucas–Kanade Tracking on AIST 2D keypoints
+def lucas_kanade_on_keypoints(video_path, keypoint_path, view=0):
+    gt_keypoints = load_keypoints(keypoint_path, view)
     num_frames, num_joints, _ = gt_keypoints.shape
 
-    # load video
     cap = cv2.VideoCapture(video_path)
     ret, old_frame = cap.read()
     if not ret:
-        print("Error opening video")
+        print("Error reading video")
         return
 
-    # convert first frame to gray
+    # Resize video to AIST resolution
+    old_frame = cv2.resize(old_frame, (AIST_W, AIST_H))
     old_gray = cv2.cvtColor(old_frame, cv2.COLOR_BGR2GRAY)
 
-    # convert first keypoints → float32 Nx1x2
-    p0 = gt_keypoints[0].astype(np.float32).reshape(-1, 1, 2)
+    # Initial keypoints
+    p0 = gt_keypoints[0].reshape(-1, 1, 2)
 
-    # Lucas–Kanade params
+    # LK parameters
     lk_params = dict(
         winSize=(15, 15),
         maxLevel=2,
-        criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03)
+        criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03),
     )
 
-    # visualization
+    # Random colors per joint
+    colors = np.random.randint(0, 255, (num_joints, 3)).astype(np.uint8)
+
+    # Mask to draw optical flow paths
     mask = np.zeros_like(old_frame)
-    color = np.random.randint(0, 255, (num_joints, 3)).astype(np.uint8)
+
+    # Regular resizable window
+    cv2.namedWindow("LK AIST Keypoints", cv2.WINDOW_NORMAL)
 
     frame_idx = 1
 
@@ -63,9 +59,10 @@ def lucas_kanade_on_keypoints(video_path, keypoint_path):
         if not ret or frame_idx >= num_frames:
             break
 
+        frame = cv2.resize(frame, (AIST_W, AIST_H))
         frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-        # run Lucas–Kanade optical flow from old keypoints to new frame
+        # Run Lucas–Kanade optical flow
         p1, st, err = cv2.calcOpticalFlowPyrLK(
             old_gray, frame_gray, p0, None, **lk_params
         )
@@ -73,27 +70,26 @@ def lucas_kanade_on_keypoints(video_path, keypoint_path):
         good_new = p1[st == 1]
         good_old = p0[st == 1]
 
-        # draw tracks
+        # Draw optical flow paths on persistent mask
         for j, (new, old) in enumerate(zip(good_new, good_old)):
             a, b = new.ravel().astype(int)
             c, d = old.ravel().astype(int)
+            mask = cv2.line(mask, (a, b), (c, d), colors[j].tolist(), 2)
+            frame = cv2.circle(frame, (a, b), 4, colors[j].tolist(), -1)
 
-            # line from previous to new location
-            mask = cv2.line(mask, (a, b), (c, d), color[j].tolist(), 2)
-            frame = cv2.circle(frame, (a, b), 4, color[j].tolist(), -1)
-
-        img = cv2.add(frame, mask)
-
-        # draw ground truth keypoints for reference
+        # Draw ground-truth keypoints
         for j in range(num_joints):
             gx, gy = gt_keypoints[frame_idx, j].astype(int)
-            cv2.circle(img, (gx, gy), 3, (0, 255, 0), -1)
+            cv2.circle(frame, (gx, gy), 3, (0, 255, 0), -1)
 
-        cv2.imshow("Tracked Keypoints (LK) + GT", img)
+        # Overlay mask on frame
+        img = cv2.add(frame, mask)
+
+        cv2.imshow("LK AIST Keypoints", img)
         if cv2.waitKey(1) & 0xFF == 27:
             break
 
-        # update
+        # Update previous frame/keypoints
         old_gray = frame_gray.copy()
         p0 = p1.copy()
         frame_idx += 1
@@ -102,48 +98,13 @@ def lucas_kanade_on_keypoints(video_path, keypoint_path):
     cv2.destroyAllWindows()
 
 
-# overlay MediaPipe on top of AIST keypoints
-def overlay_mediapipe_vs_aist(video_path, aist_kpts_path, out_path):
-    frame_keypoints = load_keypoints(aist_kpts_path)
-    parser = VideoParser(video_path)
-
-    fourcc = cv2.VideoWriter_fourcc(*"avc1")
-    fps = 60
-    w = int(parser.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    h = int(parser.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    writer = cv2.VideoWriter(out_path, fourcc, fps, (w, h))
-
-    model = MediaPipePose(static_image_mode=True, model_complexity=0)
-
-    frame_idx = 0
-
-    for keypts, pkt in zip(frame_keypoints, parser):
-        frame = pkt["frame"]
-        pred = model.detect_landmarks(frame)
-        pred = model.convert_to_aist17(pred)
-
-        # visualization
-        frame = visualize_preds_vs_ground_truths(
-            frame, pred, keypts
-        )
-
-        writer.write(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
-        frame_idx += 1
-
-    writer.release()
-    print(f"Done. Saved: {out_path}")
-
-
-
+# Main
 def main():
     video_path = "data/videos/gBR_sBM_c01_d04_mBR0_ch01.mp4"
     keypoint_path = "data/keypoints/gBR_sBM_cAll_d04_mBR0_ch01.pkl"
 
-    # optical flow keypoint tracking
-    lucas_kanade_on_keypoints(video_path, keypoint_path)
+    lucas_kanade_on_keypoints(video_path, keypoint_path, view=0)
 
-    # mediapipe overlay
-    overlay_mediapipe_vs_aist(video_path, keypoint_path, out_path="mediapipe_gt_overlay.mp4")
 
 if __name__ == "__main__":
     main()
