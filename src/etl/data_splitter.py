@@ -110,28 +110,31 @@ def create_choreo_splits(keypoint_files, train_ratio=0.7, val_ratio = 0.2, seed=
 
 def generate_pairs(split_files, keypoint_folder, num_positive, num_negative, max_frame_diff=30):
 
-    by_choreo = defaultdict(list)
+    by_choreo_genre_music = defaultdict(list)
 
     for metadata in split_files:
-        by_choreo[metadata['choreo']].append(metadata)
+        key = (metadata['choreo'], metadata['genre'], metadata['music'])
+        by_choreo_genre_music[key].append(metadata)
 
     pairs = []
 
-    positive_count = 0
+    easy_positive_count = 0
     attempts = 0
     max_attempts = num_positive * 10
 
-
     # generate positives pairs
-    while positive_count < num_positive and attempts < max_attempts:
+    while easy_positive_count < num_positive // 2 and attempts < max_attempts:
         attempts += 1
 
-        ch = random.choice(list(by_choreo.keys()))
+        valid_keys = [k for k in by_choreo_genre_music.keys() if len(by_choreo_genre_music[k]) >= 2]
+        
+        if not valid_keys:
+            print("WARNING: Not enough files with matching choreo+genre+music for positive pairs!")
+            break
 
-        if len(by_choreo[ch]) < 2:
-            continue
+        key = random.choice(valid_keys)
 
-        file1, file2 = random.sample(by_choreo[ch], 2)
+        file1, file2 = random.sample(by_choreo_genre_music[key], 2)
 
         max_frame = min(file1['num_frames'], file2['num_frames']) - 1
 
@@ -151,22 +154,66 @@ def generate_pairs(split_files, keypoint_folder, num_positive, num_negative, max
             'frame1': frame_idx,
             'frame2': frame_idx,
             'match': 1,
-            'type': 'positive',
-            'ch': ch
+            'type': 'easy positive'
         })
 
-        positive_count += 1
+        easy_positive_count += 1
+
+    attempts = 0
+    hard_positive_count = 0
+    while hard_positive_count < num_positive // 2 and attempts < max_attempts:
+        attempts += 1
+
+        valid_keys = [k for k in by_choreo_genre_music.keys() if len(by_choreo_genre_music[k]) >= 2]
+        if not valid_keys:
+            break
+
+        key = random.choice(valid_keys)
+        file1, file2 = random.sample(by_choreo_genre_music[key], 2)
+
+        max_frame = min(file1['num_frames'], file2['num_frames']) - 1
+        if max_frame < 20:  # Need enough frames for offset
+            continue
+        
+        frame1 = random.randint(15, max_frame - 15)
+        offset = random.randint(5, 15)
+        frame2 = frame1 + (offset if random.random() < 0.5 else -offset)
+        frame2 = max(0, min(frame2, max_frame))
+        
+        file1_path = os.path.join(keypoint_folder, file1['filename'])
+        file2_path = os.path.join(keypoint_folder, file2['filename'])
+        
+        if not is_valid_keypoint(file1_path, frame1) or not is_valid_keypoint(file2_path, frame2):
+            continue
+
+        pairs.append({
+            'file1': file1['filename'],
+            'file2': file2['filename'],
+            'frame1': frame1,
+            'frame2': frame2,
+            'match': 1,
+            'type': 'hard positive'
+        })
+        hard_positive_count += 1
+
 
     difficult_negative_count = 0
     attempts = 0
 
     while difficult_negative_count < num_negative // 2 and attempts < max_attempts:
         attempts += 1
-        ch = random.choice(list(by_choreo.keys()))
 
-        file1, file2 = random.sample(by_choreo[ch], 2)
+        valid_keys = [k for k in by_choreo_genre_music.keys() if len(by_choreo_genre_music[k]) >= 2]
+        
+        if not valid_keys:
+            print("WARNING: Not enough files with matching choreo+genre+music for positive pairs!")
+            break
 
-        if len(by_choreo[ch]) < 2:
+        key = random.choice(valid_keys)
+
+        file1, file2 = random.sample(by_choreo_genre_music[key], 2)
+
+        if len(by_choreo_genre_music[key]) < 2:
             continue
 
         frame1 = random.randint(0, file1['num_frames'] - 1)
@@ -189,8 +236,7 @@ def generate_pairs(split_files, keypoint_folder, num_positive, num_negative, max
             'frame1': frame1,
             'frame2': frame2,
             'match': 0,
-            'type': 'difficult',
-            'ch': ch
+            'type': 'hard negative'
         })
         difficult_negative_count += 1
 
@@ -224,8 +270,7 @@ def generate_pairs(split_files, keypoint_folder, num_positive, num_negative, max
             'frame1': frame1,
             'frame2': frame2,
             'match': 0,
-            'type': 'easy',
-            'ch': None
+            'type': 'easy negative'
         })
         easy_negative_count += 1
 
@@ -251,9 +296,9 @@ def main():
             json.dump(split_data, f, indent=2)
 
     pair_counts = {
-        'train': 10000,
-        'val': 2000,
-        'test': 2000
+        'train': 350000,
+        'val': 70000,
+        'test': 70000
     }
 
 
@@ -267,11 +312,14 @@ def main():
         with open(output_path, 'w') as f:
             json.dump(pairs, f, indent=2)
 
-        pos_count = sum(1 for p in pairs if p['match'] == 1)
-        hard_neg_count = sum(1 for p in pairs if p['type'] == 'difficult')
-        easy_neg_count = sum(1 for p in pairs if p['type'] == 'easy')
+        hard_pos_count = sum(1 for p in pairs if p['type'] == 'hard positive')
+        easy_pos_count = sum(1 for p in pairs if p['type'] == 'easy positive')
+        hard_neg_count = sum(1 for p in pairs if p['type'] == 'hard negative')
+        easy_neg_count = sum(1 for p in pairs if p['type'] == 'easy negative')
 
-        print(f"    Positive pairs: {pos_count}")
+
+        print(f"    Hard positive pairs: {hard_pos_count}")
+        print(f"    Easy positive pairs: {easy_pos_count}")
         print(f"    Hard negative pairs: {hard_neg_count}")
         print(f"    Easy negative pairs: {easy_neg_count}")
 

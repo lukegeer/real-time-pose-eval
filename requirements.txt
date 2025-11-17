@@ -7,3 +7,4 @@ pandas
 mediapipe
 torch
 tqdm
+scikit-learn

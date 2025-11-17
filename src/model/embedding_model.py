@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 
 class PoseEmbeddingNet(nn.Module):
-    def __init__(self, input_dims=51, hidden_dims=[256, 128], embed_dims=64, dropout=0.2, sigma=0.05):
+    def __init__(self, input_dims=51, hidden_dims=[256, 128], embed_dims=64, dropout=0.2):
         super().__init__()
 
         layers = []
@@ -24,7 +24,6 @@ class PoseEmbeddingNet(nn.Module):
 
         self.network = nn.Sequential(*layers)
 
-        self.sigma = sigma
 
     def forward(self, x):
         x = x.view(x.size(0), -1)
@@ -37,7 +36,7 @@ class PoseEmbeddingNet(nn.Module):
         
 
 class ContrastiveLoss(nn.Module):
-    def __init__(self, margin=0.5, oks_weight=0.3, sigma=0.05):
+    def __init__(self, margin=0.5, oks_weight=0.0, sigma=0.5):
 
         super().__init__()
 
@@ -51,10 +50,9 @@ class ContrastiveLoss(nn.Module):
 
         oks = self.compute_oks(keypoints1, keypoints2)
 
-
         combined_sim = (1 - self.oks_weight) * similarity + self.oks_weight * oks
         
-        loss = labels * (1 - combined_sim) + (1 - labels) * torch.clamp(combined_sim - self.margin, min=0)
+        loss = labels * (1 - combined_sim).pow(2) + (1 - labels) * torch.clamp(combined_sim - self.margin, min=0).pow(2)
 
         loss = torch.mean(loss)
 
