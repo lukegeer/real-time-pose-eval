@@ -10,13 +10,15 @@ This system addresses a common challenge in pose estimation: when body keypoints
 
 Code: [Optical Flow Keypoint Prediction](optical_flow_keypoint_prediction.py)
 
-Dense optical flow (specifically using the Farneback method) computes motion vectors for every pixel between consecutive frames. Since dense optical flow is computationally intensive, we implemented optimizations including resolution reduction and frame skipping to maintain real-time performance. This represents a typical performance-robustness tradeoff common in real-time computer vision applications.
+Dense optical flow (specifically using the Farneback method) computes motion vectors for every pixel between consecutive frames. Since dense optical flow is computationally intensive, we implemented optimizations including resolution reduction and frame skipping to maintain real-time performance. This represents a typical performance-robustness trade-off common in real-time computer vision applications.
 
 The system processes video at two different resolutions to balance accuracy and speed:
+
 - **Original Resolution (1920×1080)**: MediaPipe pose estimation runs on full-resolution frames to maximize keypoint detection accuracy
 - **Downscaled Resolution (480×270)**: Optical flow computation runs on reduced resolution (downscaled 4x) to enable low-latency real-time performance
 
-MediaPipe detects 33 body keypoints with associated confidence scores. When keypoints are visible and unoccluded, MediaPipe provides accurate localization. However, when body parts are:
+MediaPipe detects 33 body keypoints with associated confidence scores. When keypoints are clear and visible, MediaPipe provides accurate localization. However, when body parts are:
+
 - Occluded by other body parts or objects
 - Out of frame boundaries
 - In poor lighting conditions
@@ -35,7 +37,8 @@ MediaPipe detects 33 body keypoints with associated confidence scores. When keyp
 Note: For keypoints occluded over prolonged periods, prediction confidence decays based on spatial and temporal linearity assumptions.
 
 ### Confidence Model
-```
+
+```text
 if mediapipe_confidence >= threshold:
     use MediaPipe detection
 else:
