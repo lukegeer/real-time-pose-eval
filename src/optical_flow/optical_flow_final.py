@@ -26,8 +26,7 @@ def dense_optical_flow(method, video_path, params=[], to_gray=None, overlay=True
     print(f"Original frame size: {old_frame.shape[:2]}")
     
     # Resize frame 
-    old_frame = cv2.resize(old_frame, None, fx=scale, fy=scale, 
-                          interpolation=cv2.INTER_LINEAR)
+    old_frame = cv2.resize(old_frame, None, fx=scale, fy=scale, interpolation=cv2.INTER_LINEAR)
     
     print(f"Resized frame size: {old_frame.shape[:2]} (scale={scale})")
     print(f"Pixel reduction: {(1-scale**2)*100:.1f}%")
@@ -71,8 +70,7 @@ def dense_optical_flow(method, video_path, params=[], to_gray=None, overlay=True
 
         # Resize frame - resolution/speed trade-off
         t0 = time.time()
-        new_frame = cv2.resize(new_frame, None, fx=scale, fy=scale,
-                              interpolation=cv2.INTER_LINEAR)
+        new_frame = cv2.resize(new_frame, None, fx=scale, fy=scale, interpolation=cv2.INTER_LINEAR)
         t1 = time.time()
         
         new_gray = cv2.cvtColor(new_frame, cv2.COLOR_BGR2GRAY) if to_gray else new_frame.copy()
@@ -113,8 +111,7 @@ def dense_optical_flow(method, video_path, params=[], to_gray=None, overlay=True
             fps_values.pop(0)
         avg_fps = sum(fps_values) / len(fps_values)
         
-        cv2.putText(display_frame, f"FPS: {avg_fps:.1f}", (10, 30),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+        # cv2.putText(display_frame, f"FPS: {avg_fps:.1f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
 
         # Show frame
         cv2.imshow("Optical Flow", display_frame)
@@ -129,13 +126,14 @@ def dense_optical_flow(method, video_path, params=[], to_gray=None, overlay=True
     cv2.destroyAllWindows()
     print(f"\nAverage FPS: {avg_fps:.2f}")
     
+    """
     if profile and len(time_resize) > 0:
         print(f"\nTiming breakdown (ms per frame):")
         print(f"  Resize:       {np.mean(time_resize):.2f}")
         print(f"  Optical Flow: {np.mean(time_flow):.2f}")
         print(f"  Visualization:{np.mean(time_viz):.2f}")
         print(f"  Total:        {np.mean(time_resize)+np.mean(time_flow)+np.mean(time_viz):.2f}")
-
+    """
 
 def main():
     video_path = "../../data/videos/gBR_sBM_c01_d04_mBR0_ch01.mp4"
