@@ -111,7 +111,7 @@ def dense_optical_flow(method, video_path, params=[], to_gray=None, overlay=True
             fps_values.pop(0)
         avg_fps = sum(fps_values) / len(fps_values)
         
-        # cv2.putText(display_frame, f"FPS: {avg_fps:.1f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+        cv2.putText(display_frame, f"FPS: {avg_fps:.1f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 0), 1)
 
         # Show frame
         cv2.imshow("Optical Flow", display_frame)
@@ -124,16 +124,6 @@ def dense_optical_flow(method, video_path, params=[], to_gray=None, overlay=True
 
     cap.release()
     cv2.destroyAllWindows()
-    print(f"\nAverage FPS: {avg_fps:.2f}")
-    
-    """
-    if profile and len(time_resize) > 0:
-        print(f"\nTiming breakdown (ms per frame):")
-        print(f"  Resize:       {np.mean(time_resize):.2f}")
-        print(f"  Optical Flow: {np.mean(time_flow):.2f}")
-        print(f"  Visualization:{np.mean(time_viz):.2f}")
-        print(f"  Total:        {np.mean(time_resize)+np.mean(time_flow)+np.mean(time_viz):.2f}")
-    """
 
 def main():
     video_path = "../../data/videos/gBR_sBM_c01_d04_mBR0_ch01.mp4"
@@ -154,8 +144,7 @@ def main():
     print("Press ESC to quit\n")
     
 
-    dense_optical_flow(method, video_path, params=params, 
-                      overlay=True, scale=0.25, skip_frames=0, profile=True)
+    dense_optical_flow(method, video_path, params=params, overlay=True, scale=0.25, skip_frames=0, profile=True)
 
 if __name__ == "__main__":
     main()
