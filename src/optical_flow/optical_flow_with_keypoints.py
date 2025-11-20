@@ -57,7 +57,7 @@ def dense_optical_flow_with_keypoints(method, video_path, params=[], to_gray=Non
 
         start = time.time()
         
-        # 1. Run MediaPipe on ORIGINAL resolution
+        # 1. Run MediaPipe on original resolution
         results = pose.process(cv2.cvtColor(new_frame, cv2.COLOR_BGR2RGB))
         
         # 2. Resize for optical flow
@@ -82,7 +82,7 @@ def dense_optical_flow_with_keypoints(method, video_path, params=[], to_gray=Non
         else:
             display_frame = flow_bgr.copy()
         
-        # 5. Draw keypoints - SCALE COORDINATES DOWN
+        # 5. Draw keypoints - scaled coords down
         if results.pose_landmarks:
             for landmark in results.pose_landmarks.landmark:
                 # Convert normalized coords to pixel coords in SMALL frame

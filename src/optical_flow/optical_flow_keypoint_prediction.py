@@ -6,8 +6,7 @@ import mediapipe as mp
 class KeypointPredictor:
     """Predicts occluded keypoints using optical flow"""
     
-    def __init__(self, num_keypoints=33, confidence_threshold=0.5, 
-                 history_size=5, flow_scale=1.0):
+    def __init__(self, num_keypoints=33, confidence_threshold=0.5, history_size=5, flow_scale=1.0):
         """
         Args:
             num_keypoints: Number of pose keypoints (33 for MediaPipe)
@@ -99,7 +98,7 @@ class KeypointPredictor:
         self.prev_keypoints = current_keypoints.copy()
         self.prev_confidences = current_confidences.copy()
         
-        # Optional: Smooth predictions using history
+        # Smooth predictions using history
         self.keypoint_history.append(current_keypoints.copy())
         if len(self.keypoint_history) > self.history_size:
             self.keypoint_history.pop(0)
@@ -222,7 +221,7 @@ def dense_optical_flow_with_prediction(method, video_path, params=[], to_gray=No
         else:
             display_frame = new_frame_small.copy()
         
-        # 6. Draw keypoints with different colors for predicted vs detected (1 pixel)
+        # 6. Draw keypoints with different colors for predicted vs detected
         for i, (kp, conf, is_predicted) in enumerate(zip(keypoints, confidences, predicted_mask)):
             if conf > 0.1:  # Only draw if somewhat confident
                 # Scale down to display resolution
@@ -231,19 +230,11 @@ def dense_optical_flow_with_prediction(method, video_path, params=[], to_gray=No
                 
                 if 0 <= x < display_frame.shape[1] and 0 <= y < display_frame.shape[0]:
                     if is_predicted:
-                        # PREDICTED by optical flow - RED (1 pixel)
+                        # PREDICTED by optical flow - RED
                         display_frame[y, x] = [0, 0, 255]
                     else:
-                        # DETECTED by MediaPipe - GREEN (1 pixel)
+                        # DETECTED by MediaPipe - GREEN
                         display_frame[y, x] = [0, 255, 0]
-        
-        # Draw skeleton connections (optional)
-        if results and results.pose_landmarks:
-            # Create a copy of landmarks scaled to display resolution
-            scaled_landmarks = mp_pose.PoseLandmark
-            # This is simplified - you'd need to properly scale the landmark object
-            # For now, just draw connections manually if needed
-            pass
 
         # FPS and stats display
         end = time.time()
