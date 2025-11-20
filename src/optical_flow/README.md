@@ -8,7 +8,7 @@ This system addresses a common challenge in pose estimation: when body keypoints
 
 ## Methodology
 
-Code: `[Optical Flow Keypoint Prediction](optical_flow_keypoint_prediction.py)`
+Code: [Optical Flow Keypoint Prediction](optical_flow_keypoint_prediction.py)
 
 Dense optical flow (specifically using the Farneback method) computes motion vectors for every pixel between consecutive frames. Since dense optical flow is computationally intensive, we implemented optimizations including resolution reduction and frame skipping to maintain real-time performance. This represents a typical performance-robustness tradeoff common in real-time computer vision applications.
 
