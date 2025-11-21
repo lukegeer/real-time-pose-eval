@@ -4,4 +4,4 @@ opencv-python
 jupyter
 notebook
 pandas
-mediapipe
+mediapipe==0.10.21

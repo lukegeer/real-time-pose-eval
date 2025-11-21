@@ -84,4 +84,3 @@ class MediaPipePose:
 
         return kp17
 
-    
