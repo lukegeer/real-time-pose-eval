@@ -12,7 +12,7 @@ from util.pose_metrics import calculate_position_similarity, calculate_per_keypo
 # AIST++ reference configuration
 AIST_VIDEO_PATH = "./data/videos/gBR_sBM_c01_d04_mBR0_ch01.mp4"
 AIST_KEYPOINT_PATH = "./data/processed/aist_plusplus_final/keypoints2d/gBR_sBM_cAll_d04_mBR0_ch01.pkl"
-AIST_START_FRAME = 155
+AIST_START_FRAME = 0
 AIST_VIDEO = False
 AIST_MP_KEYPOINTS = False
 
@@ -26,7 +26,7 @@ CONFIDENCE_THRESHOLD = 0.5
 EXCLUDE_FACE_FROM_SIMILARITY = False
 
 # MediaPipe pose settings
-STATIC_IMAGE_MODE = True
+STATIC_IMAGE_MODE = False
 MODEL_COMPLEXITY = 1
 
 
