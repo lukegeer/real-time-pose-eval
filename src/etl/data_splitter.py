@@ -3,8 +3,25 @@ import json
 import pickle
 import random
 import argparse
+import numpy as np
 from collections import defaultdict
 from pathlib import Path
+
+def is_valid_keypoint(keypoint_file, frame_idx):
+    """Check if keypoints at frame_idx are valid (no NaN values)."""
+    try:
+        with open(keypoint_file, 'rb') as f:
+            data = pickle.load(f)
+        
+        # Get keypoints for this frame: data['keypoints2d'][person_idx][frame_idx]
+        # We use person_idx=0 (first person)
+        keypoints = data['keypoints2d'][0][frame_idx]  # Shape: (17, 3)
+        
+        # Check if any NaN values exist in the keypoint data
+        return not np.isnan(keypoints).any()
+    except Exception as e:
+        # If we can't load or access the data, consider it invalid
+        return False
 
 def parse_filename(filename):
     attributes = filename.replace('.pkl', '').split('_')
@@ -91,7 +108,7 @@ def create_choreo_splits(keypoint_files, train_ratio=0.7, val_ratio = 0.2, seed=
 
     return splits
 
-def generate_pairs(split_files, num_positive, num_negative, max_frame_diff=30):
+def generate_pairs(split_files, keypoint_folder, num_positive, num_negative, max_frame_diff=30):
 
     by_choreo = defaultdict(list)
 
@@ -119,6 +136,14 @@ def generate_pairs(split_files, num_positive, num_negative, max_frame_diff=30):
         max_frame = min(file1['num_frames'], file2['num_frames']) - 1
 
         frame_idx = random.randint(0, max_frame)
+        
+        # Build full paths to check for NaN
+        file1_path = os.path.join(keypoint_folder, file1['filename'])
+        file2_path = os.path.join(keypoint_folder, file2['filename'])
+        
+        # Skip this pair if either has NaN values
+        if not is_valid_keypoint(file1_path, frame_idx) or not is_valid_keypoint(file2_path, frame_idx):
+            continue
 
         pairs.append({
             'file1': file1['filename'],
@@ -149,6 +174,14 @@ def generate_pairs(split_files, num_positive, num_negative, max_frame_diff=30):
 
         if abs(frame1 - frame2) < max_frame_diff:
             continue
+        
+        # Build full paths to check for NaN
+        file1_path = os.path.join(keypoint_folder, file1['filename'])
+        file2_path = os.path.join(keypoint_folder, file2['filename'])
+        
+        # Skip this pair if either has NaN values
+        if not is_valid_keypoint(file1_path, frame1) or not is_valid_keypoint(file2_path, frame2):
+            continue
 
         pairs.append({
             'file1': file1['filename'],
@@ -176,6 +209,14 @@ def generate_pairs(split_files, num_positive, num_negative, max_frame_diff=30):
 
         frame1 = random.randint(0, file1['num_frames'] - 1)
         frame2 = random.randint(0, file2['num_frames'] - 1)
+        
+        # Build full paths to check for NaN
+        file1_path = os.path.join(keypoint_folder, file1['filename'])
+        file2_path = os.path.join(keypoint_folder, file2['filename'])
+        
+        # Skip this pair if either has NaN values
+        if not is_valid_keypoint(file1_path, frame1) or not is_valid_keypoint(file2_path, frame2):
+            continue
 
         pairs.append({
             'file1': file1['filename'],
@@ -219,7 +260,7 @@ def main():
     for split_name, split_data in splits.items():
         pair_count = pair_counts[split_name]
 
-        pairs = generate_pairs(split_data['files'], pair_count // 2, pair_count // 2)
+        pairs = generate_pairs(split_data['files'], keypoint_folder, pair_count // 2, pair_count // 2)
 
         output_path = os.path.join(output_folder, f"{split_name}_pairs.json")
 

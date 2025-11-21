@@ -5,3 +5,5 @@ jupyter
 notebook
 pandas
 mediapipe==0.10.21
+torch
+tqdm
