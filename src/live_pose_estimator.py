@@ -4,79 +4,70 @@ import numpy as np
 import pickle
 import time
 from media_pipe_pose import MediaPipePose
-from util.visualize_tools import get_mp_keypoints, resize_height_and_keypoints, create_visualization
-from util.pose_metrics import extract_joint_angles, get_overlay, calculate_pose_similarity, draw_limb_vectors
+from util.visualize_tools import get_mp_keypoints, resize_height_and_keypoints, create_visualization, draw_score_ui
+from util.pose_metrics import calculate_position_similarity, calculate_per_keypoint_similarity, score_to_color
 
-# Refactor it so that all the webcam body overlays
-# 
-# 
-# 
-#  keypoints, 
 
 ### CONFIGURATION ###
-WEBCAM_INDEX = 1    # 1 for MacBook
-CONFIDENCE_THRESHOLD = 0.5
-
 # AIST++ reference configuration
 AIST_VIDEO_PATH = "./data/videos/gBR_sBM_c01_d04_mBR0_ch01.mp4"
 AIST_KEYPOINT_PATH = "./data/processed/aist_plusplus_final/keypoints2d/gBR_sBM_cAll_d04_mBR0_ch01.pkl"
-AIST_START_FRAME = 0
-AIST_STILL = True
+AIST_START_FRAME = 155
+AIST_VIDEO = False
+AIST_MP_KEYPOINTS = False
 
 # Display settings
-TARGET_HEIGHT = 1080 # 720  # Resize frames to this height for consistent display
+WEBCAM_INDEX = 1    # 1 for MacBook
+TARGET_HEIGHT = 1080 # Resize frames to this height for consistent display (has performance effect)
+FLIP_WEBCAM = True
+
+# Similarity settings
+CONFIDENCE_THRESHOLD = 0.5
+EXCLUDE_FACE_FROM_SIMILARITY = False
+
+# MediaPipe pose settings
+STATIC_IMAGE_MODE = True
+MODEL_COMPLEXITY = 1
 
 
-### NEW CODE: UI Helper to draw the score bar ###
-def draw_score_ui(frame, score, vec_score, ang_score):
-    # Color coding: Red < 50 < Yellow < 80 < Green
-    if score > 80: color = (0, 255, 0)
-    elif score > 50: color = (0, 255, 255)
-    else: color = (0, 0, 255)
-
-    # Draw Background Bar
-    cv2.rectangle(frame, (20, 20), (320, 90), (0, 0, 0), -1)
-    
-    # Draw Progress Bar
-    bar_width = int((score / 100) * 280)
-    cv2.rectangle(frame, (30, 55), (30 + bar_width, 75), color, -1)
-    cv2.rectangle(frame, (30, 55), (310, 75), (255, 255, 255), 2) # Border
-
-    # Text stats
-    cv2.putText(frame, f"MATCH: {int(score)}%", (30, 45), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-    
-    # Small debug stats below
-    cv2.putText(frame, f"Angle: {int(ang_score)}% | Vector: {int(vec_score)}%", (30, 105), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (200, 200, 200), 1)
 
 
 def main():
     print("=" * 60)
     print("Real-Time Pose Tracking with Reference")
     print("=" * 60)
-    
+
     pose_detector = MediaPipePose(
-        static_image_mode=True,
-        model_complexity=1,
+        static_image_mode=STATIC_IMAGE_MODE,
+        model_complexity=MODEL_COMPLEXITY,
         min_detection_confidence=CONFIDENCE_THRESHOLD
     )
-
-    # display settings
-    show_keypoints = True
-    flip_webcam = False
-    aist_still_flag = True
-    aist_current_frame = AIST_START_FRAME
 
     print("\nOpening AIST video...")
     aist_cap = cv2.VideoCapture(AIST_VIDEO_PATH)
     if not aist_cap.isOpened():
         raise ValueError(f"Could not open video: {AIST_VIDEO_PATH}")
 
+    # get total AIST frame count
+    total_aist_frames = int(aist_cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    print(f"AIST video has {total_aist_frames} frames")
+
+    # load pickle once at startup
+    print("\nLoading ground truth keypoints...")
+    with open(AIST_KEYPOINT_PATH, 'rb') as f:
+        aist_data = pickle.load(f)
+    aist_all_keypoints = aist_data['keypoints2d'][0]
+    print(f"Loaded {len(aist_all_keypoints)} keypoint frames")
+
+    # set AIST starting frame
+    aist_current_frame = AIST_START_FRAME
+
     print("\nOpening webcam...")
     webcam_cap = cv2.VideoCapture(WEBCAM_INDEX)
     if not webcam_cap.isOpened():
         print("Error: Could not open webcam")
         return
-    
+
     # get webcam dimensions
     webcam_width = int(webcam_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     webcam_height = int(webcam_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -101,47 +92,43 @@ def main():
                 fps = fps_update_interval / elapsed
                 start_time = time.time()
             
-
-            # read AIST frame (still or video)
-            if aist_still_flag:
-                # only first AIST frame if still
-                if AIST_STILL:
-                    aist_still_flag = False
-
-                # seek to desired AIST frame
+            # only read/process if in video mode OR if this is the first frame in still mode
+            if AIST_VIDEO or frame_count == 1:
+                # read AIST frame
                 aist_cap.set(cv2.CAP_PROP_POS_FRAMES, aist_current_frame)
                 success, aist_frame = aist_cap.read()
 
                 if not success:
-                    raise ValueError(f"Could not read frame {aist_current_frame} from {AIST_VIDEO_PATH}")
-                
-                # load ground truth keypoints
-                with open(AIST_KEYPOINT_PATH , 'rb') as f:
-                    data = pickle.load(f)
-                
+                    # loop back to start if we've reached the end
+                    aist_current_frame = 0
+                    aist_cap.set(cv2.CAP_PROP_POS_FRAMES, aist_current_frame)
+                    success, aist_frame = aist_cap.read()
+                    if not success:
+                        raise ValueError(f"Could not read frame {aist_current_frame} from {AIST_VIDEO_PATH}")
+
                 # extract AIST keypoints
-                aist_gt_keypoints = data['keypoints2d'][0][aist_current_frame]
-                aist_mp_keypoints = get_mp_keypoints(pose_detector, aist_frame)
+                if AIST_MP_KEYPOINTS: # MediaPipe keypoints
+                    keypoint_type = "MP"
+                    aist_keypoints = get_mp_keypoints(pose_detector, aist_frame)
+                else: # ground truth keypoints
+                    keypoint_type = "GT"
+                    aist_keypoints = aist_all_keypoints[aist_current_frame]
 
                 # resize AIST frame and keypoints to target height
-                aist_frame, aist_mp_keypoints, aist_gt_keypoints = resize_height_and_keypoints(aist_frame, TARGET_HEIGHT, aist_mp_keypoints, aist_gt_keypoints)
+                aist_frame, aist_keypoints = resize_height_and_keypoints(aist_frame, TARGET_HEIGHT, aist_keypoints)
 
-                # extract AIST angles
-                aist_angles = extract_joint_angles(aist_mp_keypoints, CONFIDENCE_THRESHOLD)
-
-                aist_title = f"REFERENCE | FRAME {AIST_START_FRAME} | VIDEO ID: {Path(AIST_VIDEO_PATH).name}"
+                # create AIST visualization
+                aist_title = f"REFERENCE | FRAME {aist_current_frame} | VIDEO ID: {Path(AIST_VIDEO_PATH).name} | TYPE: {keypoint_type}"
                 aist_vis_frame = create_visualization(
                     aist_frame, 
-                    confidence_threshold=CONFIDENCE_THRESHOLD, 
-                    mp_keypoints=aist_mp_keypoints, 
-                    gt_keypoints=aist_gt_keypoints, 
+                    confidence_threshold=CONFIDENCE_THRESHOLD if AIST_MP_KEYPOINTS else 0.0,
+                    keypoints=aist_keypoints,
                     title=aist_title
                 )
 
-                # update frame counter if not still
-                if not AIST_STILL:
-                    aist_current_frame += 1
-                    # NEED TO UPDATE LENGTH OVERFLOW TO SET A LOOP
+                # advance to next frame (only if in video mode)
+                if AIST_VIDEO:
+                    aist_current_frame = (aist_current_frame + 1) % total_aist_frames
 
 
             # read webcam
@@ -151,73 +138,66 @@ def main():
                 break
             
             # flip webcam for mirror view
-            if flip_webcam:
+            if FLIP_WEBCAM:
                 webcam_frame = cv2.flip(webcam_frame, 1)
 
             # extract webcam keypoints
-            webcam_mp_keypoints = get_mp_keypoints(pose_detector, webcam_frame)
+            webcam_keypoints = get_mp_keypoints(pose_detector, webcam_frame)
 
             # resize webcam frame and keypoints to target height
-            webcam_frame, webcam_mp_keypoints, _ = resize_height_and_keypoints(webcam_frame, TARGET_HEIGHT, webcam_mp_keypoints)
+            webcam_frame, webcam_keypoints = resize_height_and_keypoints(webcam_frame, TARGET_HEIGHT, webcam_keypoints)
 
-            # extract webcam angles
-            webcam_angles = extract_joint_angles(webcam_mp_keypoints, CONFIDENCE_THRESHOLD)
+            # compare pose positions
+            total_score = calculate_position_similarity(
+                aist_keypoints,
+                webcam_keypoints,
+                conf_threshold=CONFIDENCE_THRESHOLD,
+                exclude_face_from_similarity=EXCLUDE_FACE_FROM_SIMILARITY
+            )
+
+            # calculate per-keypoint scores for visualization coloring
+            keypoint_scores = calculate_per_keypoint_similarity(
+                aist_keypoints,
+                webcam_keypoints,
+                conf_threshold=CONFIDENCE_THRESHOLD,
+                distance_threshold=0.2,
+                exclude_face_from_similarity=EXCLUDE_FACE_FROM_SIMILARITY
+            )
+
+            # convert scores to colors
+            if keypoint_scores is None:
+                # cannot calculate - set all keypoints to white (error state)
+                # use all 17 keypoint indices
+                keypoint_colors = {i: (255, 255, 255) for i in range(17)}
+            else:
+                keypoint_colors = {idx: score_to_color(score) for idx, score in keypoint_scores.items()}
             
             # create webcam visualization
             webcam_title = "LIVE WEBCAM"
-            webcam_footer = "q: quit | k: toggle keypoints"
-            if not show_keypoints:
-                webcam_mp_keypoints = None
+            if fps > 0:
+                webcam_title += f" | FPS: {fps:.1f}"
+            webcam_title += " | q: quit"
             webcam_vis_frame = create_visualization(
                 webcam_frame, 
                 confidence_threshold=CONFIDENCE_THRESHOLD, 
-                mp_keypoints=webcam_mp_keypoints, 
+                keypoints=webcam_keypoints, 
                 title=webcam_title,
-                fps=fps,
-                footer=webcam_footer
+                mp_keypoint_colors=keypoint_colors
             )
 
-
-            # compare Live Angles/Vectors vs Reference Angles/Vectors
-            total_score, vec_score, ang_score = calculate_pose_similarity(
-                aist_gt_keypoints,
-                webcam_mp_keypoints,
-                aist_angles,
-                webcam_angles,
-                conf_threshold=CONFIDENCE_THRESHOLD,
-                angle_sigma=30.0,
-                vector_weight=0.5,
-                angle_weight=0.5
-            )
-
-            if show_keypoints:
-                # 1. Draw the joint angle arcs on the live feed
-                webcam_vis_frame = get_overlay(webcam_vis_frame, webcam_mp_keypoints, webcam_angles, CONFIDENCE_THRESHOLD)
-                
-                # 2. Optionally draw limb direction vectors (for debugging)
-                # Uncomment the line below to see directional arrows
-                # from util.pose_metrics import draw_limb_vectors
-                # webcam_vis_frame = draw_limb_vectors(webcam_vis_frame, webcam_mp_keypoints, CONFIDENCE_THRESHOLD)
-                
-                # 3. Draw the score bar
-                draw_score_ui(webcam_vis_frame, total_score, vec_score, ang_score)
-            
+            draw_score_ui(webcam_vis_frame, total_score)
 
             # combine frames side by side
             combined_frame = np.hstack([webcam_vis_frame, aist_vis_frame])
-            
+        
             # display
             cv2.imshow('Live vs Reference Pose Tracking', combined_frame)
             
-
             # handle keyboard input
             key = cv2.waitKey(1) & 0xFF
             if key == ord('q'):
                 print("\nQuitting...")
                 break
-            elif key == ord('k'):
-                show_keypoints = not show_keypoints
-                print(f"Keypoints: {'ON' if show_keypoints else 'OFF'}")
     
     except KeyboardInterrupt:
         print("\n\nInterrupted by user")
