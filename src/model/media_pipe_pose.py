@@ -37,20 +37,38 @@ class MediaPipePose:
         ]
     
     def detect_landmarks(self, frame, confidence_threshold=0.3):
+        """
+        Return both image-space (pose_landmarks) and world-space (pose_world_landmarks)
+        as (33, 4) arrays [x, y, z, visibility]. Image coords are normalized to [0,1].
+        Landmarks below the confidence threshold are set to NaN with visibility 0 to avoid
+        downstream top-left jumps when detections drop.
+        """
         results = self.pose.process(frame)
 
-        h, w = frame.shape[:2]
+        kp_img = np.full((33, 4), np.nan, dtype=float)
+        kp_world = np.full((33, 4), np.nan, dtype=float)
 
-        landmarks = np.zeros((33, 3))
-        if results.pose_landmarks: 
-            for idx, landmark in enumerate(results.pose_landmarks.landmark):
-                x = int(landmark.x * w)
-                y = int(landmark.y * h)
-                visibility = landmark.visibility
-                
-                landmarks[idx] = (x, y, visibility)
-            
-        return landmarks
+        if results.pose_landmarks:
+            for i, lm in enumerate(results.pose_landmarks.landmark):
+                vis = lm.visibility
+                if vis >= confidence_threshold:
+                    kp_img[i] = (lm.x, lm.y, lm.z, vis)
+                else:
+                    kp_img[i] = (np.nan, np.nan, np.nan, 0.0)
+        else:
+            kp_img[:, 3] = 0.0
+
+        if results.pose_world_landmarks:
+            for i, lm in enumerate(results.pose_world_landmarks.landmark):
+                vis = lm.visibility
+                if vis >= confidence_threshold:
+                    kp_world[i] = (lm.x, lm.y, lm.z, vis)
+                else:
+                    kp_world[i] = (np.nan, np.nan, np.nan, 0.0)
+        else:
+            kp_world[:, 3] = 0.0
+
+        return kp_img, kp_world
 
 
     aist17_to_mediapipe = [
@@ -75,13 +93,18 @@ class MediaPipePose:
 
     def convert_to_aist17(self, kp33):
 
-        kp17 = np.zeros((17, 3), dtype=kp33.dtype)
-
+        kp17 = np.zeros((17, 4), dtype=kp33.dtype)
         for i, mp_idx in enumerate(self.aist17_to_mediapipe):
-            # Copy x, y, conf from MediaPipe index to AIST index
-            x, y, conf = kp33[mp_idx]
-            kp17[i] = [x, y, conf]
-
+            x, y, z, conf = kp33[mp_idx]
+            kp17[i] = [x, y, z, conf]
         return kp17
+
+    def convert_to_aist17_world(self, kp33_world):
+        kp17 = np.zeros((17, 4), dtype=kp33_world.dtype)
+        for i, mp_idx in enumerate(self.aist17_to_mediapipe):
+            x, y, z, conf = kp33_world[mp_idx]
+            kp17[i] = [x, y, z, conf]
+        return kp17
+        
 
     

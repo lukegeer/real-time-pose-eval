@@ -73,7 +73,7 @@ if __name__ == '__main__':
   
   # Filter for sBM only
   seq_names = [name for name in seq_names if "sBM" in name]
-  seq_names = seq_names[:10]
+  # seq_names = seq_names[:1000]
 
   # Define all genres
   genres = ['gBR', 'gPO', 'gLO', 'gMH', 'gLH', 'gHO', 'gWA', 'gKR', 'gJS', 'gJB']

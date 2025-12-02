@@ -149,8 +149,8 @@ def main():
     train_dataset = TripletPoseDataset(train_pairs, keypoints_folder, augment=False)
     val_dataset = TripletPoseDataset(val_pairs, keypoints_folder, augment=False)
     
-    train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True, num_workers=4)
-    val_loader = DataLoader(val_dataset, batch_size=128, shuffle=False, num_workers=4)
+    train_loader = DataLoader(train_dataset, batch_size=256, shuffle=True, num_workers=4)
+    val_loader = DataLoader(val_dataset, batch_size=256, shuffle=False, num_workers=4)
     
     model = PoseEmbeddingNet(embed_dims=128, hidden_dims=[512, 512], dropout=0.3).to(device)
     # Print number of parameters
