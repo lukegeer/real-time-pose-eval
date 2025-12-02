@@ -1,4 +1,4 @@
-Metric,Threshold,Accuracy
-Angle,0.961,0.562
-Oks,0.000,0.541
-Embedding,0.750,0.665
+Metric,Threshold,Accuracy,Positive_Acc,Negative_Acc
+Angle,0.971,0.564,0.502,0.626
+Oks,0.000,0.539,0.211,0.866
+Embedding,0.756,0.677,0.717,0.638

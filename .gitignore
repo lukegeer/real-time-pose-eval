@@ -213,3 +213,8 @@ __pycache__/
 .ipynb_checkpoints/
 
 *.DS_Store
+.DS_Store
+data/.DS_Store
+src/.DS_Store
+data/.DS_Store
+src/.DS_Store
