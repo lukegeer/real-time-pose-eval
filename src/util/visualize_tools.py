@@ -157,6 +157,56 @@ def create_visualization(frame, confidence_threshold=0.5, keypoints=None, title=
     return vis_frame
 
 
+# def draw_score_ui(frame, score):
+#     # box dimensions
+#     box_width = 300
+#     box_height = 90
+    
+#     # reference point (top-right corner of frame)
+#     x_ref = frame.shape[1] - box_width - 4
+#     y_ref = 4
+    
+#     # draw background box
+#     cv2.rectangle(frame, (x_ref, y_ref), (x_ref + box_width, y_ref + box_height), (0, 0, 0), -1)
+    
+#     if score is None:
+#         # cannot calculate similarity - show warning
+#         cv2.putText(frame, "CANNOT CALCULATE", 
+#                    (x_ref + 10, y_ref + 25), 
+#                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 165, 255), 2) # orange
+#         cv2.putText(frame, "Hips not detected", 
+#                    (x_ref + 10, y_ref + 55), 
+#                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 2)
+#         cv2.putText(frame, "Step back from camera", 
+#                    (x_ref + 10, y_ref + 80), 
+#                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 2)
+#     else:
+#         # color coding: red < 50 < yellow < 80 < green
+#         if score > 80: color = (0, 255, 0)
+#         elif score > 50: color = (0, 255, 255)
+#         else: color = (0, 0, 255)
+        
+#         # progress bar dimensions
+#         bar_x = x_ref + 10
+#         bar_y = y_ref + 35
+#         bar_max_width = 280
+#         bar_height = 20
+        
+#         # draw progress bar
+#         bar_width = int((score / 100) * bar_max_width)
+#         cv2.rectangle(frame, (bar_x, bar_y), (bar_x + bar_width, bar_y + bar_height), color, -1)
+#         cv2.rectangle(frame, (bar_x, bar_y), (bar_x + bar_max_width, bar_y + bar_height), (255, 255, 255), 2)  # Border
+
+#         # text stats
+#         cv2.putText(frame, f"MATCH: {int(score)}%", 
+#                    (bar_x, bar_y - 10), 
+#                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+        
+#         # small descriptor below
+#         cv2.putText(frame, "Position-based similarity", 
+#                    (bar_x, bar_y + bar_height + 25), 
+#                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200, 200, 200), 1)
+
 def draw_score_ui(frame, score):
     # box dimensions
     box_width = 300
@@ -197,10 +247,15 @@ def draw_score_ui(frame, score):
         cv2.rectangle(frame, (bar_x, bar_y), (bar_x + bar_width, bar_y + bar_height), color, -1)
         cv2.rectangle(frame, (bar_x, bar_y), (bar_x + bar_max_width, bar_y + bar_height), (255, 255, 255), 2)  # Border
 
-        # text stats
+        # text stats - main percentage
         cv2.putText(frame, f"MATCH: {int(score)}%", 
                    (bar_x, bar_y - 10), 
                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+        
+        # precise decimal score (inside or near progress bar)
+        cv2.putText(frame, f"{score:.2f}", 
+                   (bar_x + bar_max_width - 60, bar_y + 15), 
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
         
         # small descriptor below
         cv2.putText(frame, "Position-based similarity", 
