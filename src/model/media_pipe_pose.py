@@ -46,7 +46,6 @@ class MediaPipePose:
         results = self.pose.process(frame)
 
         kp_img = np.full((33, 4), np.nan, dtype=float)
-        kp_world = np.full((33, 4), np.nan, dtype=float)
 
         if results.pose_landmarks:
             for i, lm in enumerate(results.pose_landmarks.landmark):
@@ -58,17 +57,7 @@ class MediaPipePose:
         else:
             kp_img[:, 3] = 0.0
 
-        if results.pose_world_landmarks:
-            for i, lm in enumerate(results.pose_world_landmarks.landmark):
-                vis = lm.visibility
-                if vis >= confidence_threshold:
-                    kp_world[i] = (lm.x, lm.y, lm.z, vis)
-                else:
-                    kp_world[i] = (np.nan, np.nan, np.nan, 0.0)
-        else:
-            kp_world[:, 3] = 0.0
-
-        return kp_img, kp_world
+        return kp_img
 
 
     aist17_to_mediapipe = [
@@ -96,13 +85,6 @@ class MediaPipePose:
         kp17 = np.zeros((17, 4), dtype=kp33.dtype)
         for i, mp_idx in enumerate(self.aist17_to_mediapipe):
             x, y, z, conf = kp33[mp_idx]
-            kp17[i] = [x, y, z, conf]
-        return kp17
-
-    def convert_to_aist17_world(self, kp33_world):
-        kp17 = np.zeros((17, 4), dtype=kp33_world.dtype)
-        for i, mp_idx in enumerate(self.aist17_to_mediapipe):
-            x, y, z, conf = kp33_world[mp_idx]
             kp17[i] = [x, y, z, conf]
         return kp17
         

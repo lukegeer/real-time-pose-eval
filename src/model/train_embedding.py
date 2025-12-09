@@ -32,6 +32,9 @@ class TripletPoseDataset(Dataset):
             keypoints1 = self.augment_keypoints(keypoints1)
             keypoints2 = self.augment_keypoints(keypoints2)
 
+        keypoints1 = self.normalize_keypoints(keypoints1)
+        keypoints2 = self.normalize_keypoints(keypoints2)
+
         return {
             'keypoints1': torch.tensor(keypoints1, dtype=torch.float32),
             'keypoints2': torch.tensor(keypoints2, dtype=torch.float32),
@@ -89,6 +92,19 @@ class TripletPoseDataset(Dataset):
         conf_mask = np.random.rand(len(kp)) > 0.1
         kp[:, 2] *= conf_mask
         
+        return kp
+
+    def normalize_keypoints(self, keypoints):
+        kp = keypoints.copy()
+        xy = kp[:, :2]
+        if not np.all(np.isfinite(xy)):
+            # Replace non-finite with zeros before computing span
+            xy = np.nan_to_num(xy, nan=0.0, posinf=0.0, neginf=0.0)
+            kp[:, :2] = xy
+        min_xy = xy.min(axis=0)
+        max_xy = xy.max(axis=0)
+        span = np.maximum(max_xy - min_xy, 1e-6)
+        kp[:, :2] = (xy - min_xy) / span
         return kp
     
 
@@ -184,7 +200,6 @@ def main():
 
 if __name__ == '__main__':
     main()
-
 
 
 

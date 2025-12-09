@@ -37,9 +37,9 @@ def create_classic_kalman(x_init, y_init):
     B = np.zeros((4, 2))
     H = np.array([[1, 0, 0, 0],
                 [0, 1, 0, 0]])
-    Q = np.diag([5e-2, 5e-2, 2e-1, 2e-1])
-    # Trust measurements more, particularly flow-derived velocity/accel
-    R = np.diag([1.0, 1.0])
+    # Moderately smooth: modest process noise, moderate measurement noise
+    Q = np.diag([0.00005, 0.00005, 0.00008, 0.00008])
+    R = np.diag([16.0, 16.0])
 
     kalman = Kalman(F, B, H, Q, R, x0, P0)
     return kalman
@@ -118,9 +118,11 @@ def create_kalman_with_acceleration(x_init, y_init, dt=1.0):
     ])
     # Measurement: [x, y, vx, vy, ax, ay]
     H = np.eye(6)
-    # Faster-but-stable settings
-    Q = np.diag([5e-3, 5e-3, 5e-2, 5e-2, 2e-1, 2e-1])
-    R = np.diag([2e-2, 2e-2, 2e-1, 2e-1, 1.0, 1.0])
+    # Moderately smooth: a bit more process noise, slightly lower measurement noise to reduce lag
+    # Q = np.diag([2e-3, 2e-3, 2e-2, 2e-2, 8e-2, 8e-2])
+    # R = np.diag([1.0, 1.0, 3.0, 3.0, 6.0, 6.0])
+    Q = np.diag([0.002, 0.002, 0.01, 0.01, 0.08, 0.08])
+    R = np.diag([1.0, 1.0, 3.0, 3.0, 6.0, 6.0])
 
     kalman = Kalman(F, B, H, Q, R, x0, P0)
     return kalman

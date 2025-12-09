@@ -10,7 +10,10 @@ class VideoParser:
             resize (tuple[int,int], optional): resize frames to a certain (width, height)
             show_fps (bool): prints fps every few frames if True
         """
-        self.cap = cv2.VideoCapture(source)
+        if live:
+            self.cap = cv2.VideoCapture(source, cv2.CAP_AVFOUNDATION)
+        else:
+            self.cap = cv2.VideoCapture(source)
         if not self.cap.isOpened():
             raise ValueError(f"Could not open video source: {source}")
         self.resize = resize
@@ -21,21 +24,26 @@ class VideoParser:
         frame_idx = 0
         last = time.time()
         fps = 0.0
+        consecutive_failures = 0
 
         while True:
             ret, frame = self.cap.read()
             if not ret:
-                print("Failed to read from webcam")
+                consecutive_failures += 1
+                # Give the camera a few tries to start before bailing out
+                if consecutive_failures < 5:
+                    time.sleep(0.05)
+                    continue
+                print("Failed to read from webcam/video source")
                 break
+            consecutive_failures = 0
             
             if self.live:
                 frame = cv2.flip(frame, 1)
             
             if self.resize:
                 frame = cv2.resize(frame, self.resize)
-
-            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-
+                
             timestamp = self.cap.get(cv2.CAP_PROP_POS_MSEC) / 1000
 
             if self.show_fps and frame_idx % 30 == 0:
