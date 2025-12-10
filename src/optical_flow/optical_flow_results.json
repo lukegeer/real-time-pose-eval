@@ -1,0 +1,112 @@
+{
+  "1": {
+    "frames_processed": 239,
+    "overall_mean_magnitude": 0.117482490837574,
+    "overall_median_magnitude": 0.0013013530988246202,
+    "overall_std_magnitude": 0.6723266243934631,
+    "overall_max_magnitude": 16.469572067260742,
+    "percentile_95": 0.2730489328503558,
+    "motion_coverage_0.5": 0.044056903765690374,
+    "avg_fps": 77.68552440567866,
+    "prediction_percentage": 0.0
+  },
+  "2": {
+    "frames_processed": 239,
+    "overall_mean_magnitude": 0.18375226855278015,
+    "overall_median_magnitude": 0.001234086463227868,
+    "overall_std_magnitude": 0.9210238456726074,
+    "overall_max_magnitude": 24.57330894470215,
+    "percentile_95": 0.8421874046325627,
+    "motion_coverage_0.5": 0.05449205020920502,
+    "avg_fps": 8451.004692817936,
+    "prediction_percentage": 0.0
+  },
+  "3": {
+    "frames_processed": 239,
+    "overall_mean_magnitude": 0.15641523897647858,
+    "overall_median_magnitude": 0.0013649554457515478,
+    "overall_std_magnitude": 0.7761172652244568,
+    "overall_max_magnitude": 13.5549955368042,
+    "percentile_95": 0.5490196704864422,
+    "motion_coverage_0.5": 0.050803347280334726,
+    "avg_fps": 12641.42181226582,
+    "prediction_percentage": 0.0
+  },
+  "4": {
+    "frames_processed": 239,
+    "overall_mean_magnitude": 0.16903245449066162,
+    "overall_median_magnitude": 0.0013922479702159762,
+    "overall_std_magnitude": 0.8793259263038635,
+    "overall_max_magnitude": 27.473438262939453,
+    "percentile_95": 0.5804424643516444,
+    "motion_coverage_0.5": 0.051559832635983266,
+    "avg_fps": 33566.19112274739,
+    "prediction_percentage": 0.0
+  },
+  "5": {
+    "frames_processed": 239,
+    "overall_mean_magnitude": 0.13580365478992462,
+    "overall_median_magnitude": 0.0013916820753365755,
+    "overall_std_magnitude": 0.8009761571884155,
+    "overall_max_magnitude": 18.636077880859375,
+    "percentile_95": 0.1836830608546723,
+    "motion_coverage_0.5": 0.040676150627615065,
+    "avg_fps": 79.8414749211887,
+    "prediction_percentage": 0.0
+  },
+  "6": {
+    "frames_processed": 239,
+    "overall_mean_magnitude": 0.15801309049129486,
+    "overall_median_magnitude": 0.001296200673095882,
+    "overall_std_magnitude": 0.8146883845329285,
+    "overall_max_magnitude": 24.646032333374023,
+    "percentile_95": 0.31827179640531,
+    "motion_coverage_0.5": 0.04703430962343096,
+    "avg_fps": 21008.017447524275,
+    "prediction_percentage": 0.0
+  },
+  "7": {
+    "frames_processed": 239,
+    "overall_mean_magnitude": 0.09768983721733093,
+    "overall_median_magnitude": 0.0012801785487681627,
+    "overall_std_magnitude": 0.6204933524131775,
+    "overall_max_magnitude": 21.701461791992188,
+    "percentile_95": 0.12146839611232084,
+    "motion_coverage_0.5": 0.03582259414225941,
+    "avg_fps": 8450.084313089244,
+    "prediction_percentage": 0.0
+  },
+  "8": {
+    "frames_processed": 239,
+    "overall_mean_magnitude": 0.11357958614826202,
+    "overall_median_magnitude": 0.0012987182708457112,
+    "overall_std_magnitude": 0.7057801485061646,
+    "overall_max_magnitude": 16.165504455566406,
+    "percentile_95": 0.09469014294445234,
+    "motion_coverage_0.5": 0.035032635983263595,
+    "avg_fps": 16824.514020792212,
+    "prediction_percentage": 0.0
+  },
+  "9": {
+    "frames_processed": 239,
+    "overall_mean_magnitude": 0.08319469541311264,
+    "overall_median_magnitude": 0.0013177362270653248,
+    "overall_std_magnitude": 0.5508652329444885,
+    "overall_max_magnitude": 23.165000915527344,
+    "percentile_95": 0.09977797083556618,
+    "motion_coverage_0.5": 0.030984100418410043,
+    "avg_fps": 16822.36104938372,
+    "prediction_percentage": 0.0
+  },
+  "10": {
+    "frames_processed": 239,
+    "overall_mean_magnitude": 0.05131971836090088,
+    "overall_median_magnitude": 0.001249970868229866,
+    "overall_std_magnitude": 0.3779667317867279,
+    "overall_max_magnitude": 13.478006362915039,
+    "percentile_95": 0.06146650910377452,
+    "motion_coverage_0.5": 0.020952301255230125,
+    "avg_fps": 12643.280491435939,
+    "prediction_percentage": 0.0
+  }
+}
