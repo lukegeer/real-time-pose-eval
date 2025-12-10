@@ -44,56 +44,6 @@ def create_classic_kalman(x_init, y_init):
     kalman = Kalman(F, B, H, Q, R, x0, P0)
     return kalman
 
-def create_kalman_optical_flow_as_measurement(x_init, y_init, dt=1.0):
-    x0 = np.array([x_init, y_init, 0, 0])
-    P0 = np.eye(4)
-
-    F = np.array([[1, 0, dt, 0],
-                [0, 1, 0, dt],
-                [0, 0, 1,  0],
-                [0, 0, 0,  1]])
-    B = np.array([
-        [0, 0],
-        [0, 0],
-        [1, 0],
-        [0, 1]
-    ])
-    H = np.array([[1, 0, 0, 0],
-                [0, 1, 0, 0],
-                [0, 0, 1, 0],
-                [0, 0, 0, 1]])
-    Q = np.diag([5e-2, 5e-2, 2e-1, 2e-1])
-    # Trust measurements more, particularly flow-derived velocity/accel
-    R = np.diag([2e-1, 2e-1, 1.0, 1.0])
-
-    kalman = Kalman(F, B, H, Q, R, x0, P0)
-    return kalman
-
-def create_kalman_flow_control_only(x_init, y_init, dt=2.0):
-    x0 = np.array([x_init, y_init, 0, 0])
-    P0 = np.eye(4)
-
-    F = np.array([[1, 0, dt, 0],
-                  [0, 1, 0, dt],
-                  [0, 0, 1,  0],
-                  [0, 0, 0,  1]])
-    # Control affects velocities directly
-    B = np.array([
-        [0, 0],
-        [0, 0],
-        [1, 0],
-        [0, 1]
-    ])
-    # Measure position only
-    H = np.array([[1, 0, 0, 0],
-                  [0, 1, 0, 0]])
-    Q = np.diag([5e-2, 5e-2, 2e-1, 2e-1])
-    # Trust measurements more, particularly flow-derived velocity/accel
-    R = np.diag([1.0, 1.0])
-
-    return Kalman(F, B, H, Q, R, x0, P0)
-
-
 def create_kalman_with_acceleration(x_init, y_init, dt=1.0):
     x0 = np.array([x_init, y_init, 0, 0, 0, 0])
     P0 = np.eye(6)

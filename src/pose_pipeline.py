@@ -359,14 +359,8 @@ def process_frame(frame, state, model, create_kalman, dt):
                 state["prev_keypoints"],
                 pred_keypoints2d_stab.shape[0],
                 pred_keypoints2d_stab,
-                flow,
-                state["prev_flow"],
-                dt,
                 conf_threshold=0.1,
                 vel_state=state["vel_state"],
-                prev_prev_keypoints=state["prev_prev_keypoints"],
-                prev_raw=state["prev_raw"],
-                prev_prev_raw=state["prev_prev_raw"],
                 fallback_counts=state["fallback_counts"],
             )
         else:
